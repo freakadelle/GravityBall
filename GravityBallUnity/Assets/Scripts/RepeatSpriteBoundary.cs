@@ -3,48 +3,91 @@ using System.Collections;
 
 // @NOTE the attached sprite's position should be "top left" or the children will not align properly
 // Strech out the image as you need in the sprite render, the following script will auto-correct it when rendered in the game
-[RequireComponent(typeof(SpriteRenderer))]
 
 // Generates a nice set of repeated sprites inside a streched sprite renderer
 // @NOTE Vertical only, you can easily expand this to horizontal with a little tweaking
 public class RepeatSpriteBoundary : MonoBehaviour
 {
-    private SpriteRenderer sprite;
 
+    //private SpriteRenderer sprite;
+
+    public bool createBoundsCollider;
     [SerializeField, Range(0, 100)]
     public int repeatX;
     [SerializeField, Range(0, 100)]
     public int repeatY;
+    [SerializeField, Range(-2, 2)]
+    public float scale = 1;
+
+    void Start()
+    {
+        
+    }
 
     void Awake()
     {
-        // Get the current sprite with an unscaled size
-        sprite = GetComponent<SpriteRenderer>();
+        GameObject groundTileInstance = Resources.Load("Prefabs/Ground_Stone_Tile", typeof(GameObject)) as GameObject;
+        SpriteRenderer sprite = groundTileInstance.GetComponent<SpriteRenderer>();
         Vector2 spriteSize = new Vector2(sprite.bounds.size.x / transform.localScale.x, sprite.bounds.size.y / transform.localScale.y);
 
-        // Generate a child prefab of the sprite renderer
-        GameObject childPrefab = new GameObject();
-        SpriteRenderer childSprite = childPrefab.AddComponent<SpriteRenderer>();
-        childPrefab.transform.position = transform.position;
-        childSprite.sprite = sprite.sprite;
+        groundTileInstance.transform.position = transform.position;
 
-        // Loop through and spit out repeated tiles
         GameObject child;
+
         for (int x = 0; x < repeatX; x++)
         {
             for (int y = 0; y < repeatY; y++)
             {
-                child = Instantiate(childPrefab);
+                child = Instantiate(groundTileInstance);
                 child.transform.position = new Vector3(spriteSize.x * x, spriteSize.y * y, 0);
                 child.transform.parent = transform;
+
+                //if (createBoundsCollider && (y <= 0 || x <= 0 || y >= repeatY - 1 || x >= repeatX - 1))
+                //{
+                //    child.GetComponent<BoxCollider2D>().enabled = true;
+                //    child.GetComponent<WallBehaviour>().enabled = true;
+                //}
             }
         }
 
-        // Set the parent last on the prefab to prevent transform displacement
-        childPrefab.transform.parent = transform;
-        Destroy(childPrefab);
+        if (createBoundsCollider)
+        {
 
-        // Disable the currently existing sprite component since its now a repeated image
-        sprite.enabled = false;
+            child = new GameObject("WallColliderNorth");
+            child.AddComponent<EdgeCollider2D>();
+            child.transform.position = new Vector3(spriteSize.x * (repeatX - 0.5f) / 2.0f, spriteSize.y * (repeatY - 0.5f), 0);
+            child.transform.localScale = new Vector3(repeatX * 7, 0, 0);
+            child.AddComponent<WallBehaviour>();
+            child.transform.parent = transform;
+
+            child = new GameObject("WallColliderSouth");
+            child.AddComponent<EdgeCollider2D>();
+            child.transform.position = new Vector3(spriteSize.x * (repeatX - 0.5f) / 2.0f, -(spriteSize.y / 2), 0);
+            child.transform.localScale = new Vector3(repeatX * 7, 0, 0);
+            child.AddComponent<WallBehaviour>();
+            child.transform.parent = transform;
+
+            child = new GameObject("WallColliderEast");
+            child.AddComponent<EdgeCollider2D>();
+            child.transform.rotation = Quaternion.Euler(0, 0, 90);
+            child.transform.position = new Vector3(spriteSize.x * (repeatX - 0.5f), spriteSize.y * (repeatY - 0.5f) / 2.0f, 0);
+            child.transform.localScale = new Vector3(repeatY * 7, 0, 0);
+            child.AddComponent<WallBehaviour>();
+            child.transform.parent = transform;
+
+            child = new GameObject("WallColliderWest");
+            child.AddComponent<EdgeCollider2D>();
+            child.transform.rotation = Quaternion.Euler(0, 0, -90);
+            child.transform.position = new Vector3(-(spriteSize.x / 2), spriteSize.y * (repeatY - 0.5f) / 2.0f, 0);
+            child.transform.localScale = new Vector3(repeatY * 7, 0, 0);
+            child.AddComponent<WallBehaviour>();
+            child.transform.parent = transform;
+
+        }
+
+        //Resize mao to desired size
+        transform.localScale = new Vector3(scale, scale, scale);
+
+        
     }
 }
